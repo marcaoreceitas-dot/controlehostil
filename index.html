@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle de Gastos Pessoais</title>
+  <style>
+    /* Reset básico e tipografia */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f4f7f6;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* Cartão principal responsivo */
+    .container {
+      background-color: #ffffff;
+      width: 100%;
+      max-width: 420px;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      color: #1e293b;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    /* Estilo dos campos do formulário */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 1rem;
+      color: #1e293b;
+      background-color: #f8fafc;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #2563eb;
+      background-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    /* Botão principal */
+    button {
+      width: 100%;
+      padding: 14px;
+      background-color: #2563eb;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin-top: 8px;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: #1d4ed8;
+    }
+
+    button:disabled {
+      background-color: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    /* Mensagens de feedback (sucesso/erro) */
+    .mensagem {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      text-align: center;
+      display: none;
+    }
+
+    .mensagem.sucesso {
+      display: block;
+      background-color: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .mensagem.erro {
+      display: block;
+      background-color: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Controle de Gastos</h1>
+
+    <form id="formGastos">
+      <div class="form-group">
+        <label for="descricao">Descrição</label>
+        <input type="text" id="descricao" placeholder="Ex: Almoço no restaurante" required>
+      </div>
+
+      <div class="form-group">
+        <label for="categoria">Categoria</label>
+        <select id="categoria" required>
+          <option value="" disabled selected>Selecione uma categoria</option>
+          <option value="Alimentação">Alimentação</option>
+          <option value="Transporte">Transporte</option>
+          <option value="Lazer">Lazer</option>
+          <option value="Estudos">Estudos</option>
+          <option value="Outros">Outros</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="valor">Valor (R$)</label>
+        <input type="number" id="valor" step="0.01" min="0.01" placeholder="0.00" required>
+      </div>
+
+      <button type="submit" id="btnSalvar">Salvar Gasto</button>
+    </form>
+
+    <div id="statusMensagem" class="mensagem"></div>
+  </div>
+
+  <script>
+    // Cole aqui a URL gerada ao implantar o Google Apps Script como App da Web
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwaE9yCOwxV_Q-aoNRqLl8O6jEV5RZ6_g2rMZjEuku4cLdVWfchjuBlJXl4XQqXki8kJQ/exec";
+
+    const form = document.getElementById("formGastos");
+    const btnSalvar = document.getElementById("btnSalvar");
+    const statusMensagem = document.getElementById("statusMensagem");
+
+    form.addEventListener("submit", function(event) {
+      // Impede que a página recarregue ao enviar o formulário
+      event.preventDefault();
+
+      // Desabilita o botão e muda o texto para dar feedback visual
+      btnSalvar.disabled = true;
+      btnSalvar.textContent = "Salvando...";
+      statusMensagem.style.display = "none";
+
+      // Captura os valores digitados nos campos
+      const dadosGasto = {
+        descricao: document.getElementById("descricao").value.trim(),
+        categoria: document.getElementById("categoria").value,
+        valor: parseFloat(document.getElementById("valor").value)
+      };
+
+      // Envia os dados para o Google Apps Script
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(dadosGasto)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "sucesso") {
+          mostrarMensagem("Gasto salvo com sucesso na planilha!", "sucesso");
+          form.reset(); // Limpa os campos do formulário
+        } else {
+          mostrarMensagem("Erro ao salvar: " + data.mensagem, "erro");
+        }
+      })
+      .catch(error => {
+        mostrarMensagem("Erro de conexão. Verifique a URL do script e sua internet.", "erro");
+        console.error("Erro:", error);
+      })
+      .finally(() => {
+        // Reabilita o botão independente de ter dado certo ou errado
+        btnSalvar.disabled = false;
+        btnSalvar.textContent = "Salvar Gasto";
+      });
+    });
+
+    function mostrarMensagem(texto, tipo) {
+      statusMensagem.textContent = texto;
+      statusMensagem.className = "mensagem " + tipo;
+      statusMensagem.style.display = "block";
+    }
+  </script>
+
+</body>
+</html>
